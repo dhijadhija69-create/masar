@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Entreprises · Masar{% endblock %}
+{% block content %}
+<header class="page-head"><div><h1>Entreprises</h1><p class="muted">{{ total }} entreprise(s) dans ta base, avec contact et position quand ils existent.</p></div>
+  <a class="btn ghost" href="{{ url_for('analyse_page') }}">Analyser par ville et type</a></header>
+{% if not total %}
+<div class="panel empty-state"><h2>Aucune entreprise pour le moment</h2>
+  <p>Ajoute les entreprises dans le fichier local data/entreprises.csv pour les afficher ici.</p></div>
+{% else %}
+<form method="get" class="panel filterrow">
+  <label>Nom<input name="q" value="{{ q }}" placeholder="Nom de l'entreprise"></label>
+  <label>Type<select name="secteur"><option value="">Tous</option>{% for s in secteurs %}<option {{ 'selected' if s==secteur }}>{{ s }}</option>{% endfor %}</select></label>
+  <label>Ville<select name="ville"><option value="">Toutes</option>{% for v in villes %}<option {{ 'selected' if v==ville }}>{{ v }}</option>{% endfor %}</select></label>
+  <button class="btn">Filtrer</button>
+</form>
+<p class="note">{{ n }} résultat(s){% if n > 200 %}, les 200 premiers sont affichés (ceux avec contact d'abord){% endif %}.</p>
+<section class="ent-grid">
+  {% for e in liste %}
+  <article class="ent">
+    <b>{{ e.nom }}</b>
+    <small>{{ e.secteur }} · {{ e.ville }}{% if e.source == 'Démo' %} · démo{% endif %}</small>
+    {% if e.adresse %}<span>{{ e.adresse }}</span>{% endif %}
+    {% if e.tel %}<span>Tél : <a href="tel:{{ e.tel|replace(' ','') }}">{{ e.tel }}</a></span>{% endif %}
+    {% if e.email %}<span>Email : <a href="mailto:{{ e.email }}">{{ e.email }}</a></span>{% endif %}
+    {% if e.site %}<span><a href="{{ e.site if e.site.startswith('http') else 'https://' ~ e.site }}" target="_blank" rel="noopener">Site web</a></span>{% endif %}
+    {% if not (e.tel or e.email or e.site) %}<small>Pas de contact dans OpenStreetMap</small>{% endif %}
+    <div class="row-actions">
+      <a class="btn small" href="https://www.google.com/maps?q={{ e.lat }},{{ e.lng }}" target="_blank" rel="noopener">Google Maps</a>
+      <form method="post" action="{{ url_for('spontanee', eid=e.id) }}"><button class="btn small">Candidature spontanée</button></form>
+    </div>
+  </article>
+  {% endfor %}
+</section>
+{% endif %}
+{% endblock %}

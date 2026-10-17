@@ -1,0 +1,7 @@
+.env
+api.env
+credentials*.json
+instance/
+masar.db
+uploads/
+__pycache__/

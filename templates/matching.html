@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}CV & Matching · Masar{% endblock %}
+{% block content %}
+<header class="page-head"><div><h1>CV &amp; Matching</h1><p class="muted">Tes compétences face aux offres, et ce qui te manque pour monter en score.</p></div>
+  <a class="btn ghost" href="{{ url_for('profil_page') }}">Modifier mes compétences</a></header>
+<section class="two">
+  <div class="panel"><h2>Tes compétences</h2>
+    <p class="chips2">{% for s in mine %}<span class="have">{{ s }}</span>{% else %}<em class="muted">Aucune compétence saisie.</em>{% endfor %}</p></div>
+  <div class="panel"><h2>À apprendre en priorité</h2>
+    {% for s, n in a_apprendre %}<div class="bar"><span class="lbl">{{ s }}</span><div class="track alt"><i style="width:{{ 100*n/a_apprendre[0][1] }}%"></i></div><span class="val">{{ n }} offre{{ 's' if n>1 }}</span></div>
+    {% else %}<p class="muted">Tu couvres toutes les compétences demandées.</p>{% endfor %}</div>
+</section>
+<section class="panel"><h2>Offres classées</h2><div class="list">
+  {% for o in offres %}
+  <div class="item"><div><b>{{ o.titre }}</b><small>{{ o.entreprise }} · {{ o.ville }}</small>
+    {% if o.manque %}<small>Il te manque : {{ o.manque|join(', ') }}</small>{% else %}<small>Tu remplis toutes les compétences demandées.</small>{% endif %}</div>
+    <span class="score s{{ 3 if o.score>=70 else (2 if o.score>=40 else 1) }}">{{ o.score }} %</span></div>
+  {% endfor %}</div></section>
+{% endblock %}

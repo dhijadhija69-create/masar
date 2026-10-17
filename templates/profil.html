@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Mon profil · Masar{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <h1>Mon profil</h1>
+    <p class="muted">Ces informations alimentent ton CV, ton matching et Masar AI.</p>
+  </div>
+  <div class="pill">Profil complété à {{ pct }} %</div>
+</header>
+{% if err %}<p class="panel alert" role="alert">{{ err }}</p>{% endif %}
+{% if saved %}<p class="panel ok">Profil enregistré.</p>{% endif %}
+<form method="post" class="panel form" enctype="multipart/form-data">
+  <div class="photo-row">
+    {% if has_photo %}<img class="avatar-lg" src="{{ url_for('photo') }}?v={{ pct }}" alt="Ma photo">{% else %}<span class="avatar-lg ph">{{ (p.nom or '?')[0]|upper }}</span>{% endif %}
+    <div>
+      <label>Photo de profil <small>JPG, PNG ou WebP, 4 Mo maximum. Elle apparaît sur ton CV.</small><input type="file" name="photo" accept="image/png,image/jpeg,image/webp"></label>
+      {% if has_photo %}<label class="inline"><input type="checkbox" name="remove_photo" value="1"> Supprimer ma photo</label>{% endif %}
+    </div>
+  </div>
+  <div class="cols">
+    <label>Nom complet<input name="nom" value="{{ p.nom }}"></label>
+    <label>Titre<input name="titre" value="{{ p.titre }}"></label>
+    <label>Ville<input name="ville" value="{{ p.ville }}"></label>
+    <label>Email<input type="email" name="email" value="{{ p.email }}"></label>
+    <label>Téléphone<input name="tel" value="{{ p.tel }}"></label>
+    <label>Langues<input name="langues" value="{{ p.langues }}"></label>
+  </div>
+  <label>Compétences <small>séparées par des virgules</small><input name="competences" value="{{ p.competences }}"></label>
+  <label>Bio
+    <textarea id="bio" name="bio" rows="4" placeholder="Présente-toi en 3 phrases">{{ p.bio }}</textarea>
+  </label>
+  <div class="row-actions">
+    <button type="button" class="btn ghost" id="genbio">Générer ma bio avec l'IA</button>
+    <small id="biostate" class="muted"></small>
+  </div>
+  <label>Formation<textarea name="formation" rows="2">{{ p.formation }}</textarea></label>
+  <label>Expérience<textarea name="experience" rows="3" placeholder="Stages, jobs, bénévolat">{{ p.experience }}</textarea></label>
+  <label>Projets <small>une ligne par projet : Nom — description</small><textarea name="projets" rows="4">{{ p.projets }}</textarea></label>
+  <button class="btn">Enregistrer le profil</button>
+</form>
+<script>
+document.getElementById('genbio').addEventListener('click', async () => {
+  const f = document.querySelector('form.form'), st = document.getElementById('biostate');
+  const data = Object.fromEntries(new FormData(f).entries());
+  st.textContent = tr('Génération en cours...');
+  try {
+    const r = await fetch('{{ url_for("api_bio") }}', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data)});
+    const j = await r.json();
+    document.getElementById('bio').value = j.bio;
+    st.textContent = j.mode === 'llm' ? tr('Bio générée par le LLM. Relis-la puis enregistre.') : tr('Bio générée en mode local. Relis-la puis enregistre.');
+  } catch (e) { st.textContent = tr('Erreur : réessaie.'); }
+});
+</script>
+{% endblock %}

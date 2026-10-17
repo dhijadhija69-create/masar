@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Analyse des entreprises · Masar{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div><h1>Analyse des entreprises</h1>
+    <p class="muted">Où se trouvent les types d'entreprises qui t'intéressent, dans les villes du Maroc.</p></div>
+  {% if not empty %}<a class="btn ghost" href="{{ url_for('analyse_csv') }}?{{ query }}">Télécharger en CSV</a>{% endif %}
+</header>
+{% if empty %}
+<div class="panel empty-state"><h2>Pas encore de données à analyser</h2>
+  <p>L'analyse se calcule automatiquement à partir des entreprises présentes dans data/entreprises.csv.</p></div>
+{% else %}
+<form method="get" class="panel filterbox">
+  <fieldset><legend>Types d'entreprises</legend><div class="chips">
+    {% for s in present_s %}<label class="chip"><input type="checkbox" name="secteur" value="{{ s }}" {{ 'checked' if s in sel_s }}><span>{{ s }}</span></label>{% endfor %}
+  </div><p class="hint">Aucun type coché = tous les types importés.</p></fieldset>
+  <fieldset><legend>Villes</legend><div class="chips">
+    {% for v in present_v %}<label class="chip"><input type="checkbox" name="ville" value="{{ v }}" {{ 'checked' if v in sel_v }}><span>{{ v }}</span></label>{% endfor %}
+  </div><p class="hint">Aucune ville cochée = toutes les villes importées.</p></fieldset>
+  <button class="btn">Mettre à jour l'analyse</button>
+</form>
+{% if total %}
+<section class="kpis">
+  <div class="kpi"><b>{{ '{:,}'.format(total).replace(',', ' ') }}</b><span>Entreprises correspondantes</span></div>
+  <div class="kpi"><b>{{ top_villes[0][0] }}</b><span>Ville n°1 ({{ top_villes[0][1] }})</span></div>
+  <div class="kpi"><b>{{ top_secteurs[0][0].split(' & ')[0] }}</b><span>Type le plus présent</span></div>
+  <div class="kpi"><b>{{ part_top3 }} %</b><span>Dans les 3 premières villes</span></div>
+</section>
+<section class="two">
+  <div class="panel"><h2>Entreprises par ville</h2>
+    {% set m = top_villes[0][1] %}
+    {% for v, n in top_villes[:10] %}<div class="bar"><span class="lbl">{{ v }}</span><div class="track"><i style="width: {{ (100*n/m)|round(1) }}%"></i></div><span class="val">{{ n }}</span></div>{% endfor %}
+  </div>
+  <div class="panel"><h2>Entreprises par type</h2>
+    {% set m2 = top_secteurs[0][1] %}
+    {% for s, n in top_secteurs %}<div class="bar"><span class="lbl wide">{{ s }}</span><div class="track alt"><i style="width: {{ (100*n/m2)|round(1) }}%"></i></div><span class="val">{{ n }}</span></div>{% endfor %}
+  </div>
+</section>
+<section class="panel"><h2>Carte de chaleur : type × ville</h2>
+  <div class="scroll"><table class="heat">
+    <thead><tr><th></th>{% for s in secteurs %}<th>{{ s.split(' & ')[0] }}</th>{% endfor %}<th>Total</th></tr></thead>
+    <tbody>{% for v in ordre_villes %}<tr><th>{{ v }}</th>
+      {% for s in secteurs %}{% set n = cell.get((v, s), 0) %}<td style="background: rgba(27,94,56,{{ (0.08 + 0.85*n/vmax)|round(2) }}); color: {{ '#fff' if n/vmax > 0.45 else '#173626' }}">{{ n }}</td>{% endfor %}
+      <td class="tot">{{ top_villes_dict[v] }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+<p class="note">Ces chiffres comptent les entreprises que tu as importées (OpenStreetMap ne recense pas toutes les entreprises du pays). Plus tu importes de types et de villes, plus l'analyse est complète.</p>
+{% else %}<p class="panel empty big">Aucune entreprise ne correspond à cette sélection.</p>{% endif %}
+{% endif %}
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends "auth_base.html" %}
+{% block title %}Connexion · Masar{% endblock %}
+{% block content %}
+<p class="auth-eyebrow">Bienvenue chez Masar</p>
+<h1>Votre prochain chapitre commence ici.</h1>
+<p class="muted">Connectez-vous pour retrouver vos offres et vos candidatures.</p>
+{% if error %}<p class="alert" role="alert">{{ error }}</p>{% endif %}
+<form method="post" class="form" autocomplete="on">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label>Adresse e-mail<input type="email" name="email" value="{{ email }}" autocomplete="username" placeholder="nom@exemple.com" required autofocus></label>
+  <label>Mot de passe<input type="password" name="password" autocomplete="current-password" placeholder="Votre mot de passe" required></label>
+  <button class="btn wide">Se connecter <span aria-hidden="true">→</span></button>
+</form>
+<p class="auth-switch">Pas encore de compte ? <a href="{{ url_for('signup') }}">Créer un compte</a></p>
+{% endblock %}

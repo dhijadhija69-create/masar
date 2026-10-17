@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Créer mon CV · Masar{% endblock %}
+{% block content %}
+<header class="page-head noprint">
+  <div>
+    <h1>Créer mon CV</h1>
+    <p class="muted">Dis-moi le poste visé : l'IA adapte ton CV à partir de ton profil, sans rien inventer.</p>
+  </div>
+  {% if cv %}<a class="btn" href="{{ url_for('cv_pdf') }}">Télécharger en PDF</a>{% endif %}
+</header>
+<form method="get" class="panel filterrow noprint">
+  <input type="hidden" name="gen" value="1">
+  <label>Poste visé<input name="poste" value="{{ poste }}" placeholder="Ex : Stage Data Analyst"></label>
+  <label>Langue<select name="lang"><option value="fr" {{ 'selected' if lang=='fr' }}>Français</option><option value="en" {{ 'selected' if lang=='en' }}>English</option></select></label>
+  <button class="btn">Générer mon CV</button>
+</form>
+{% if not has_photo %}<p class="note noprint">Ajoute ta photo dans <a href="{{ url_for('profil_page') }}">Mon profil</a> pour qu'elle apparaisse sur le CV.</p>{% endif %}
+<p class="note noprint">{{ 'Mode LLM actif.' if llm else 'Mode local actif : ajoute ta clé GEMINI_API_KEY pour une rédaction par le LLM.' }}</p>
+{% if cv %}
+<!--nt--><article class="cv" dir="ltr">
+  <header class="cv-head">
+    <div>
+      <h2>{{ p.nom }}</h2>
+      <p class="cv-title">{{ poste or p.titre }}</p>
+      <p class="cv-contact">{{ [p.ville, p.email, p.tel]|select|join(' · ') }}</p>
+    </div>
+    {% if has_photo %}<img class="cv-photo" src="{{ url_for('photo') }}" alt="Photo de {{ p.nom }}">{% endif %}
+  </header>
+  <h3>{{ labels.resume }}</h3><p>{{ cv.resume }}</p>
+  {% if cv.competences %}<h3>{{ labels.skills }}</h3><p class="cv-skills">{% for s in cv.competences %}<span>{{ s }}</span>{% endfor %}</p>{% endif %}
+  {% if cv.projets %}<h3>{{ labels.projects }}</h3>
+    {% for pr in cv.projets %}<p><b>{{ pr.nom }}</b>{% if pr.description %} · {{ pr.description }}{% endif %}</p>{% endfor %}{% endif %}
+  {% if p.experience %}<h3>{{ labels.exp }}</h3><p class="pre">{{ p.experience }}</p>{% endif %}
+  {% if p.formation %}<h3>{{ labels.edu }}</h3><p class="pre">{{ p.formation }}</p>{% endif %}
+  {% if p.langues %}<h3>{{ labels.lang }}</h3><p>{{ p.langues }}</p>{% endif %}
+</article><!--/nt-->
+{% endif %}
+{% endblock %}

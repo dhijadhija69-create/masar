@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Candidatures · Masar{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <h1>Suivi des candidatures</h1>
+    <p class="muted">Garde l'historique de chaque candidature et relance au bon moment.</p>
+  </div>
+  <form class="filters" method="get">
+    <input name="q" value="{{ q }}" placeholder="Entreprise ou poste">
+    <select name="ville" onchange="this.form.submit()">
+      <option value="">Toutes les villes</option>
+      {% for v in villes %}<option {{ 'selected' if v==ville }}>{{ v }}</option>{% endfor %}
+    </select>
+    <button class="btn">Filtrer</button>
+  </form>
+</header>
+
+<section class="kpis">
+  <div class="kpi"><b>{{ stats.total }}</b><span>Candidatures</span></div>
+  <div class="kpi"><b>{{ stats.taux }} %</b><span>Taux de réponse</span></div>
+  <div class="kpi"><b>{{ stats.entretiens }}</b><span>Entretiens et réponses positives</span></div>
+  <div class="kpi {{ 'warn' if stats.relances }}"><b>{{ stats.relances|length }}</b><span>À relancer (+{{ relance_jours }} jours sans réponse)</span></div>
+</section>
+
+{% if stats.relances %}
+<section class="panel relances">
+  <h2>À relancer aujourd'hui</h2>
+  <ul>
+  {% for r in stats.relances %}
+    <li>
+      <span><b>{{ r.entreprise }}</b> · {{ r.poste }} <em>envoyée il y a {{ r.jours }} jours</em></span>
+      <form method="post" action="{{ url_for('relance', cid=r.id) }}"><button class="btn small">Relance envoyée</button></form>
+    </li>
+  {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<details class="panel add">
+  <summary>Ajouter une candidature</summary>
+  <form method="post" action="{{ url_for('add') }}" class="grid-form">
+    <label>Entreprise<input name="entreprise" required></label>
+    <label>Poste<input name="poste" required></label>
+    <label>Ville<input name="ville" list="villes"></label>
+    <label>Canal<select name="canal">{% for c in canaux %}<option>{{ c }}</option>{% endfor %}</select></label>
+    <label>Date<input type="date" name="date" value="{{ today }}"></label>
+    <label>Statut<select name="statut">{% for s in statuts %}<option>{{ s }}</option>{% endfor %}</select></label>
+    <label class="wide">Notes<input name="notes" placeholder="Contact RH, lien de l'offre..."></label>
+    <button class="btn">Enregistrer la candidature</button>
+  </form>
+  <datalist id="villes">{% for v in villes %}<option value="{{ v }}">{% endfor %}</datalist>
+</details>
+
+<section class="board">
+  {% for s in statuts %}
+  <div class="col col-{{ loop.index }}">
+    <h3>{{ s }} <span>{{ colonnes[s]|length }}</span></h3>
+    {% for r in colonnes[s] %}
+    <article class="card {{ 'late' if r.relancer }}">
+      <b>{{ r.entreprise }}</b>
+      <div>{{ r.poste }}</div>
+      <small>{{ r.ville or '—' }} · {{ r.date }} · {{ r.canal }}</small>
+      {% if r.email or r.tel %}<small class="contact">{% if r.email %}<a href="mailto:{{ r.email }}">{{ r.email }}</a>{% endif %}{% if r.tel %} · <a href="tel:{{ r.tel|replace(' ','') }}">{{ r.tel }}</a>{% endif %}</small>{% endif %}
+      {% if r.lat %}<small><a href="{{ url_for('carte') }}?focus={{ r.id }}">Voir sur la carte</a>{% if r.offre_id %} · <a href="{{ url_for('offre_page', oid=r.offre_id) }}">Offre</a>{% endif %}</small>{% endif %}
+      {% if r.relancer %}<span class="badge">À relancer</span>{% endif %}
+      <form method="post" action="{{ url_for('statut', cid=r.id) }}" class="row">
+        <select name="statut">{% for x in statuts %}<option {{ 'selected' if x==r.statut }}>{{ x }}</option>{% endfor %}</select>
+        <button class="btn small">OK</button>
+      </form>
+      <details>
+        <summary>Historique ({{ r.events|length }})</summary>
+        <ul class="hist">{% for e in r.events %}<li><i>{{ e.date }}</i> {{ e.texte }}</li>{% endfor %}</ul>
+        <form method="post" action="{{ url_for('note', cid=r.id) }}" class="row">
+          <input name="texte" placeholder="Ajouter une note" required>
+          <button class="btn small">Ajouter</button>
+        </form>
+      </details>
+      <form method="post" action="{{ url_for('delete', cid=r.id) }}"><button class="link-danger">Supprimer</button></form>
+    </article>
+    {% else %}<p class="empty">Aucune candidature</p>{% endfor %}
+  </div>
+  {% endfor %}
+</section>
+{% endblock %}

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Masar">
+  <rect x="1" y="1" width="62" height="62" rx="19" fill="#d3f0df"/>
+  <path d="M15 47c12 0 11-14 21-14 8 0 10-8 13-17" fill="none" stroke="#124c3f" stroke-width="5.5" stroke-linecap="round"/>
+  <path d="m42 18 8-6 2 10" fill="none" stroke="#14735f" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="15" cy="47" r="4.5" fill="#dfa949"/>
+  <circle cx="36" cy="33" r="3" fill="#fff"/>
+</svg>

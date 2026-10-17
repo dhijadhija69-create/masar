@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="{{ lang }}" dir="{{ dir }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Masar{% endblock %}</title>
+<link rel="icon" href="{{ url_for('static', filename='logo.svg') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<meta name="csrf" content="{{ csrf_token() }}">
+{% block head %}{% endblock %}
+</head>
+<body>
+<div class="app-shell">
+<aside class="side">
+  <a class="brand" href="{{ url_for('dashboard') }}">
+    <img src="{{ url_for('static', filename='logo.svg') }}" alt="" width="38" height="38">
+    <div><b>Masar</b><small>مسار</small></div>
+  </a>
+  <p class="tag">Your Skills. Your Opportunities.</p>
+  <nav>
+    <span class="grp">Mon espace</span>
+    <a href="{{ url_for('dashboard') }}" class="{{ 'on' if active=='dashboard' }}"><span class="nav-icon">⌂</span>Tableau de bord</a>
+    <a href="{{ url_for('offres_page') }}#recherche" class="{{ 'on' if active=='recherche' }}"><span class="nav-icon">⌕</span>Recherche</a>
+    <a href="{{ url_for('chat_page') }}" class="{{ 'on' if active=='chat' }}"><span class="nav-icon">✧</span>Masar AI</a>
+    <span class="grp">Moi</span>
+    <a href="{{ url_for('profil_page') }}" class="{{ 'on' if active=='profil' }}"><span class="nav-icon">◉</span>Mon profil</a>
+    <a href="{{ url_for('cv_page') }}" class="{{ 'on' if active=='cv' }}"><span class="nav-icon">▤</span>Créer mon CV</a>
+    <a href="{{ url_for('matching') }}" class="{{ 'on' if active=='matching' }}"><span class="nav-icon">◇</span>CV &amp; Matching</a>
+    <span class="grp">Opportunités</span>
+    <a href="{{ url_for('offres_page') }}" class="{{ 'on' if active=='offres' }}"><span class="nav-icon">▣</span>Offres</a>
+    <a href="{{ url_for('carte') }}" class="{{ 'on' if active=='carte' }}"><span class="nav-icon">⌖</span>Carte</a>
+    <a href="{{ url_for('entreprises') }}" class="{{ 'on' if active=='entreprises' }}"><span class="nav-icon">▥</span>Entreprises</a>
+    <a href="{{ url_for('analyse_page') }}" class="{{ 'on' if active=='analyse' }}"><span class="nav-icon">◩</span>Analyse des entreprises</a>
+    <a href="{{ url_for('candidatures') }}" class="{{ 'on' if active=='candidatures' }}"><span class="nav-icon">▧</span>Candidatures</a>
+  </nav>
+  {% include '_lang.html' %}
+  <div class="usercard">
+    {% if account_photo_url %}<img class="avatar photo" src="{{ account_photo_url }}" alt="">
+    {% else %}<span class="avatar">{{ (user.nom or '?')[0]|upper }}</span>{% endif %}
+    <div><b>{{ user.nom }}</b><small>{{ user.email }}</small></div>
+    <form method="post" action="{{ url_for('logout') }}"><button class="out" title="Se déconnecter">Quitter</button></form>
+  </div>
+</aside>
+<div class="app-main">
+<header class="topbar">
+  <a class="mobile-brand" href="{{ url_for('dashboard') }}"><img src="{{ url_for('static', filename='logo.svg') }}" alt=""><b>masar</b></a>
+  <form class="top-search" method="get" action="{{ url_for('chat_page') }}">
+    <label class="sr-only" for="top-query">Poser une question à l'IA</label>
+    <span aria-hidden="true">✧</span>
+    <input id="top-query" name="q" placeholder="Pose ta question à l'IA...">
+    <button type="submit">Demander</button>
+  </form>
+  <a class="top-account" href="{{ url_for('profil_page') }}" title="Mon profil">
+    {% if account_photo_url %}<img class="avatar photo" src="{{ account_photo_url }}" alt="">
+    {% else %}<span class="avatar">{{ (user.nom or '?')[0]|upper }}</span>{% endif %}
+    <span><b>{{ user.nom }}</b><small>{{ user.email }}</small></span>
+  </a>
+  <details class="mobile-nav">
+    <summary aria-label="Ouvrir la navigation"><span></span><span></span><span></span></summary>
+    <nav>
+      <a href="{{ url_for('dashboard') }}">Accueil</a>
+      <a href="{{ url_for('chat_page') }}">Masar AI</a>
+      <a href="{{ url_for('offres_page') }}">Offres d'emploi</a>
+      <a href="{{ url_for('entreprises') }}">Entreprises</a>
+      <a href="{{ url_for('carte') }}">Carte</a>
+      <a href="{{ url_for('profil_page') }}">Mon profil</a>
+      <a href="{{ url_for('candidatures') }}">Mes candidatures</a>
+    </nav>
+  </details>
+</header>
+<main>
+  {% block content %}{% endblock %}
+</main>
+</div>
+</div>
+<script>
+const TR = {{ tr_js|tojson }}; const tr = s => TR[s] || s;
+const CSRF = document.querySelector('meta[name=csrf]').content;
+document.querySelectorAll('form').forEach(f => { if ((f.method || '').toLowerCase() === 'post') {
+  const i = document.createElement('input'); i.type = 'hidden'; i.name = 'csrf_token'; i.value = CSRF; f.appendChild(i); } });
+const _fetch = window.fetch;
+window.fetch = (u, o = {}) => { o.headers = Object.assign({'X-CSRF-Token': CSRF}, o.headers || {}); return _fetch(u, o); };
+</script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Ajouter des données · Masar{% endblock %}
+{% block head %}{% if prog and prog.running %}<meta http-equiv="refresh" content="4">{% endif %}{% endblock %}
+{% block content %}
+<header class="page-head"><div><h1>Ajouter des données</h1>
+  <p class="muted">Les fichiers locaux des entreprises et des offres sont chargés automatiquement.</p></div></header>
+{% if msg %}<p class="panel ok">{{ msg }}</p>{% endif %}
+<section class="panel">
+  <h2>Offres d'emploi (API officielle Jooble)</h2>
+  {% if jooble %}
+  <form method="post" action="{{ url_for('importer_jooble') }}" class="filterrow">
+    <label>Mots-clés<input name="keywords" placeholder="data analyst" required></label>
+    <label>Ville<input name="location" placeholder="Casablanca" list="vl"></label>
+    <button class="btn">Importer depuis Jooble</button>
+  </form>
+  <datalist id="vl">{% for v in villes %}<option value="{{ v }}">{% endfor %}</datalist>
+  {% else %}
+  <p class="muted">Clé non configurée. Crée une clé gratuite sur <a href="https://jooble.org/api/about" target="_blank" rel="noopener">jooble.org/api/about</a>, puis ajoute <code>JOOBLE_API_KEY=ta_clé</code> dans ton fichier <code>.env</code> et relance l'app.</p>
+  {% endif %}
+  <hr>
+  <h2>Chercher sur les sites d'emploi</h2>
+  <p class="muted">Ouvre la recherche dans ton navigateur, trouve l'offre, puis ajoute-la avec le formulaire 4.</p>
+  <div class="filterrow">
+    <label>Spécialité<input id="s-spec" placeholder="Data analyst, développeur Python..."></label>
+    <label>Ville<select id="s-ville"><option value="">Tout le Maroc</option>{% for v in villes %}<option>{{ v }}</option>{% endfor %}</select></label>
+  </div>
+  <p class="chips2 links">{% for n, d in sites %}<a data-site="{{ d }}" class="sitelink" target="_blank" rel="noopener" href="#">{{ n }}</a>{% endfor %}</p>
+</section>
+
+<section class="panel">
+  <h2>Ajouter une offre à la main</h2>
+  <form method="post" action="{{ url_for('importer_manuel') }}" class="form">
+    <div class="cols">
+      <label>Poste<input name="titre" required></label>
+      <label>Entreprise<input name="entreprise" required></label>
+      <label>Ville<input name="ville" list="vl2"></label>
+      <label>Secteur<select name="secteur"><option value="">À préciser</option>{% for s in types %}<option>{{ s }}</option>{% endfor %}</select></label>
+      <label>Spécialité<input name="specialite" placeholder="Data & IA"></label>
+      <label>Email RH<input type="email" name="email"></label>
+      <label>Téléphone<input name="tel"></label>
+      <label>Adresse <small>pour la position exacte sur la carte</small><input name="adresse" placeholder="Rue, quartier"></label>
+      <label>Type<input name="type" placeholder="Stage, CDI..."></label>
+      <label>Lien de l'annonce<input name="url"></label>
+    </div>
+    <label>Compétences demandées <small>séparées par des virgules</small><input name="competences" placeholder="python, sql, power bi"></label>
+    <label>Description<textarea name="description" rows="3"></textarea></label>
+    <button class="btn">Ajouter l'offre</button>
+  </form>
+  <datalist id="vl2">{% for v in villes %}<option value="{{ v }}">{% endfor %}</datalist>
+</section>
+
+<section class="panel">
+  <h2>Données de démonstration</h2>
+  <p class="muted">Données fictives pour tester l'app ({{ n_off }} offre(s) au total). Supprime-les avant d'utiliser Masar pour de vrai.</p>
+  <form method="post" action="{{ url_for('importer_demo') }}" class="row-actions">
+    {% if demo %}<button class="btn ghost" name="action" value="clear">Supprimer les données de démo</button>
+    {% else %}<button class="btn ghost" name="action" value="load">Charger des données de démo</button>{% endif %}
+  </form>
+</section>
+
+<section class="panel">
+  <h2>Pourquoi pas de scraping de Rekrute ou Indeed ?</h2>
+  <p>Rekrute indique dans ses mentions légales que toute utilisation non prévue exige son accord écrit préalable, et Indeed interdit aussi la collecte automatique dans ses conditions. Masar utilise donc des sources qui l'autorisent : OpenStreetMap (données ouvertes) et l'API officielle de Jooble.</p>
+</section>
+<script>
+function upd() {
+  const q = document.getElementById('s-spec').value.trim(), v = document.getElementById('s-ville').value;
+  document.querySelectorAll('.sitelink').forEach(a => {
+    a.href = 'https://www.google.com/search?q=' + encodeURIComponent('site:' + a.dataset.site + ' ' + (q || 'stage') + ' ' + (v || 'Maroc'));
+  });
+}
+['s-spec', 's-ville'].forEach(id => document.getElementById(id).addEventListener('input', upd)); upd();
+</script>
+{% endblock %}

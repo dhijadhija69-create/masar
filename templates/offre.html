@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}{{ o.titre }} · Masar{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='leaflet/leaflet.css') }}">
+<header class="page-head">
+  <div>
+    <p class="muted"><a href="{{ url_for('offres_page') }}">Offres</a> / {{ o.entreprise }}</p>
+    <h1>{{ o.titre }}</h1>
+    <p class="muted">{{ o.entreprise }} · {{ o.ville }}{% if o.type %} · {{ o.type }}{% endif %}{% if o.source %} · source : {{ o.source }}{% endif %}</p>
+  </div>
+  {% if o.url %}<a class="btn ghost" href="{{ o.url }}" target="_blank" rel="noopener">Voir l'annonce d'origine</a>{% endif %}
+</header>
+{% if sent %}<p class="panel ok">Candidature enregistrée comme envoyée. Je te rappellerai de relancer dans 7 jours. <a href="{{ url_for('candidatures') }}">Ouvrir le suivi</a></p>{% endif %}
+
+<section class="two">
+  <div class="panel">
+    <h2>Contact de l'entreprise</h2>
+    <dl class="contact-list">
+      <dt>Email</dt><dd>{% if o.email %}<a href="mailto:{{ o.email }}">{{ o.email }}</a>{% else %}<em class="muted">non renseigné</em>{% endif %}</dd>
+      <dt>Téléphone</dt><dd>{% if o.tel %}<a href="tel:{{ o.tel|replace(' ','') }}">{{ o.tel }}</a>{% else %}<em class="muted">non renseigné</em>{% endif %}</dd>
+      <dt>Adresse</dt><dd>{{ o.adresse or o.ville }}</dd>
+    </dl>
+    {% if o.lat %}<p><a href="https://www.google.com/maps?q={{ o.lat }},{{ o.lng }}" target="_blank" rel="noopener">Ouvrir dans Google Maps</a></p>{% endif %}
+    {% if req %}<h2 class="mt">Compétences demandées</h2>
+      <p class="chips2">{% for s in req %}<span class="{{ 'have' if s|lower in mine }}">{{ s }}</span>{% endfor %}</p>{% endif %}
+    {% if o.description %}<h2 class="mt">Description</h2><p class="pre">{{ o.description }}</p>{% endif %}
+  </div>
+  <div class="panel nopad">
+    {% if o.lat %}<div id="map" class="map small"></div>{% else %}<p class="empty big">Position inconnue pour cette offre.</p>{% endif %}
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Postuler par email</h2>
+  {% if email_saved %}<p class="panel ok">Adresse email enregistrée pour cette offre.</p>{% endif %}
+  {% if email_error %}<p class="panel">Adresse email invalide. Vérifie-la puis réessaie.</p>{% endif %}
+  {% if o.email %}
+  <p class="muted">Choisis ton CV en PDF, puis écris ta lettre ici ou génère-la avec l'IA. Les deux seront joints à l'email Gmail.</p>
+  <div class="form">
+    <label>Objet<input id="subject" value="{{ subject }}"></label>
+    <label>Lettre de motivation<textarea id="body" rows="9" placeholder="Écris ta lettre ici, ou utilise le bouton de rédaction IA ci-dessous."></textarea></label>
+    <label>Mon CV (PDF)<input id="cv-file" type="file" accept="application/pdf,.pdf" required></label>
+  </div>
+  <div class="row-actions">
+    <button class="btn ghost" id="gen" type="button">Rédiger la lettre de motivation</button>
+    {% if gmail %}<button class="btn" id="gsend" type="button">Envoyer par Gmail (CV + lettre)</button>
+    <a class="btn ghost" href="{{ url_for('gmail_connect') }}?next={{ ('/offres/' ~ o.id)|urlencode }}">Reconnecter Gmail</a>
+    {% elif gmail_ok %}<a class="btn" href="{{ url_for('gmail_connect') }}?next={{ ('/offres/' ~ o.id)|urlencode }}">Connecter Gmail pour envoyer</a>{% endif %}
+    <a class="btn ghost" id="mailto" href="#">Ouvrir dans ma messagerie</a>
+    <form method="post" action="{{ url_for('envoye', oid=o.id) }}"><button class="btn small">J'ai envoyé la candidature</button></form>
+    <small id="state" class="muted">{{ 'Mode LLM actif.' if llm else 'Mode local.' }}</small>
+  </div>
+  {% else %}
+  <p class="muted">Aucun email n'est fourni avec cette offre. Si tu trouves l'adresse professionnelle, ajoute-la ici pour postuler avec Gmail ou ta messagerie.</p>
+  <form method="post" action="{{ url_for('save_offer_email', oid=o.id) }}" class="filterrow">
+    <label>Email de l'entreprise<input type="email" name="email" required maxlength="254"></label>
+    <button class="btn">Enregistrer l'email</button>
+  </form>
+  <form method="post" action="{{ url_for('postuler', oid=o.id) }}"><button class="btn ghost">Ajouter à mon suivi</button></form>
+  {% endif %}
+  {% if cand %}<p class="note">Cette offre est dans ton suivi : statut « {{ cand.statut }} ».</p>{% endif %}
+</section>
+
+<script src="{{ url_for('static', filename='leaflet/leaflet.js') }}"></script>
+<script>
+{% if o.lat %}
+const map = L.map('map').setView([{{ o.lat }}, {{ o.lng }}], 14);
+L.tileLayer('https://tile.openstreetmap.de/{z}/{x}/{y}.png', {maxZoom: 19, attribution: '© OpenStreetMap contributors'}).addTo(map);
+L.circleMarker([{{ o.lat }}, {{ o.lng }}], {radius: 10, color: '#1b4332', fillColor: '#2d6a4f', fillOpacity: .9}).addTo(map)
+  .bindPopup({{ (o.entreprise ~ ' · ' ~ (o.adresse or o.ville))|tojson }}).openPopup();
+{% endif %}
+{% if o.email %}
+const subject = document.getElementById('subject'), body = document.getElementById('body'), link = document.getElementById('mailto');
+function refresh() { link.href = 'mailto:{{ o.email }}?subject=' + encodeURIComponent(subject.value) + '&body=' + encodeURIComponent(body.value); }
+subject.addEventListener('input', refresh); body.addEventListener('input', refresh); refresh();
+document.getElementById('gen').addEventListener('click', async () => {
+  const st = document.getElementById('state'); st.textContent = tr('Rédaction en cours...');
+  try {
+    const r = await fetch('{{ url_for("api_lettre", oid=o.id) }}', {method: 'POST'}); const j = await r.json();
+    body.value = j.texte; refresh(); st.textContent = tr("Email prêt : relis-le avant l'envoi.");
+  } catch (e) { st.textContent = tr('Erreur : réessaie.'); }
+});
+const gs = document.getElementById('gsend');
+if (gs) gs.addEventListener('click', async () => {
+  const st = document.getElementById('state');
+  if (!body.value.trim()) { st.textContent = tr("Écris d'abord le message."); return; }
+  const cv = document.getElementById('cv-file').files[0];
+  if (!cv) { st.textContent = tr('Choisis ton CV au format PDF.'); return; }
+  gs.disabled = true; st.textContent = tr('Envoi en cours...');
+  try {
+    const data = new FormData();
+    data.append('subject', subject.value); data.append('body', body.value); data.append('cv', cv);
+    const r = await fetch('{{ url_for("gmail_send", oid=o.id) }}', {method: 'POST', body: data});
+    const j = await r.json();
+    if (j.ok) { location.href = '{{ url_for("offre_page", oid=o.id) }}?sent=1'; return; }
+    st.textContent = tr("Échec de l'envoi") + ' : ' + (j.error || ('HTTP ' + r.status)); gs.disabled = false;
+  } catch (e) { st.textContent = tr('Erreur : réessaie.'); gs.disabled = false; }
+});
+{% endif %}
+</script>
+{% endblock %}

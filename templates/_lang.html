@@ -1,0 +1,5 @@
+<form method="post" action="{{ url_for('set_lang') }}" class="langsw" aria-label="Language">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="next" value="{{ here }}">
+  {% for code, label in langs.items() %}<button name="lang" value="{{ code }}" title="{{ label }}" class="{{ 'on' if code == lang }}"{% if code == lang %} aria-current="true"{% endif %}>{{ code|upper if code != 'ar' else 'ع' }}</button>{% endfor %}
+</form>

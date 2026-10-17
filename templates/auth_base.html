@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="{{ lang }}" dir="{{ dir }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Masar{% endblock %}</title>
+<link rel="icon" href="{{ url_for('static', filename='logo.svg') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="authbody">
+<header class="authbar">
+  <a class="auth-brand" href="{{ url_for('login') }}">
+    <img src="{{ url_for('static', filename='logo.svg') }}" alt="">
+    <span>masar</span>
+  </a>
+  <div class="authlang">{% include '_lang.html' %}</div>
+</header>
+<div class="authwrap">
+  <section class="authside">
+    <img class="auth-photo" src="{{ url_for('static', filename='auth-workspace.jpg') }}" alt="Une équipe qui collabore dans un espace de travail">
+    <div class="auth-visual-copy">
+      <span class="auth-mark">مسار</span>
+      <p>Votre avenir, votre voie.</p>
+      <small>Emplois, stages et nouvelles perspectives au Maroc.</small>
+    </div>
+  </section>
+  <main class="authcard">
+    <div class="authcard-inner">{% block content %}{% endblock %}</div>
+  </main>
+</div>
+</body>
+</html>

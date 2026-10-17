@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Masar AI · Masar{% endblock %}
+{% block content %}
+<section class="chat">
+  <div class="chat-workspace">
+    <div class="chat-panel">
+      <div class="chat-top">
+        <div class="agent-id"><img src="{{ url_for('static', filename='logo.svg') }}" alt=""><div><b>Masar AI Agent</b><small>Assistant recherche d'emploi</small></div></div>
+        <span class="agent-status" id="iastate"><i></i> Vérification de l'IA...</span>
+      </div>
+      <div id="welcome" class="welcome">
+        <h1>Salam {{ prenom }}, qu'est-ce qu'on cherche aujourd'hui ?</h1>
+        <p>Décris ton projet professionnel et on avance ensemble.</p>
+        <div class="bubbles">
+          <button class="bubble">Trouve des offres à Marrakech</button>
+          <button class="bubble">Écris ma bio professionnelle</button>
+          <button class="bubble">Rédige une lettre de motivation</button>
+          <button class="bubble">Prépare-moi à un entretien</button>
+        </div>
+      </div>
+      <div id="log" class="log" aria-live="polite"></div>
+      <form id="form" class="composer">
+        <input id="input" autocomplete="off" placeholder="Pose ta question à l'IA..." aria-label="Message">
+        <button class="btn" aria-label="Envoyer le message">Envoyer</button>
+      </form>
+      <div class="chat-shortcuts">
+        <a href="{{ url_for('matching') }}">Analyser mon CV</a>
+        <a href="{{ url_for('carte') }}">Chercher sur la carte</a>
+        <a href="{{ url_for('offres_page') }}">Parcourir les offres</a>
+      </div>
+    </div>
+    <aside class="chat-aside">
+      <section class="aside-panel">
+        <h2>Exemples de demandes</h2>
+        <button class="bubble">Donne-moi des offres à Marrakech dans la data</button>
+        <button class="bubble">Quelles entreprises recrutent en stage ?</button>
+        <button class="bubble">Trouve des opportunités en IA et data</button>
+        <button class="bubble">Qui dois-je relancer cette semaine ?</button>
+      </section>
+      <section class="aside-panel">
+        <h2>Mes sources</h2>
+        <ul class="source-list">
+          <li><i class="source-dot maps"></i>Google Places &amp; Maps</li>
+          <li><i class="source-dot linkedin"></i>LinkedIn</li>
+          <li><i class="source-dot jooble"></i>Jooble</li>
+          <li><i class="source-dot gmail"></i>Gmail</li>
+          <li><i class="source-dot gemini"></i>Gemini (IA)</li>
+        </ul>
+      </section>
+      <section class="cv-promo">
+        <p class="auth-eyebrow">Votre prochain pas</p>
+        <h2>Ton CV, notre priorité</h2>
+        <p>Prépare ton CV pour les opportunités qui te correspondent.</p>
+        <a class="btn" href="{{ url_for('cv_page') }}">Ouvrir mon CV</a>
+      </section>
+    </aside>
+  </div>
+</section>
+<script>
+const log = document.getElementById('log'), welcome = document.getElementById('welcome'),
+      input = document.getElementById('input'), history = [];
+function add(role, text) {
+  const d = document.createElement('div'); d.className = 'msg ' + role; d.dir = 'auto'; d.textContent = text;
+  log.appendChild(d); log.scrollTop = log.scrollHeight; return d;
+}
+async function send(text) {
+  text = text.trim(); if (!text) return;
+  welcome.hidden = true; add('user', text); input.value = '';
+  const wait = add('bot', '...');
+  try {
+    const r = await fetch('{{ url_for("api_chat") }}', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({message: text, history})});
+    const j = await r.json();
+    wait.textContent = j.reply;
+    history.push({role:'user', content:text}, {role:'assistant', content:j.reply});
+  } catch (e) { wait.textContent = tr('Connexion impossible. Vérifie que le serveur tourne et réessaie.'); }
+  log.scrollTop = log.scrollHeight;
+}
+fetch('{{ url_for("ia_status") }}').then(r => r.json()).then(s => {
+  const el = document.getElementById('iastate');
+  if (s.mode === 'llm') { el.textContent = tr('IA connectée · ') + s.detail; }
+  else if (s.mode === 'error') { el.textContent = tr('IA en erreur : ') + s.detail; el.classList.add('bad'); }
+  else { el.textContent = tr('Mode local (pas de clé détectée)'); el.classList.add('warnpill'); }
+}).catch(() => {});
+document.getElementById('form').addEventListener('submit', e => { e.preventDefault(); send(input.value); });
+document.querySelectorAll('.bubble').forEach(b => b.addEventListener('click', () => send(b.textContent)));
+const initialQuestion = {{ initial|tojson }};
+if (initialQuestion) send(initialQuestion);
+</script>
+{% endblock %}

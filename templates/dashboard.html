@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Tableau de bord · Masar{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <h1>Salam {{ prenom }}</h1>
+    <p class="muted">Voici où tu en es dans ta recherche.</p>
+  </div>
+  <a class="btn" href="{{ url_for('chat_page') }}">Parler à Masar AI</a>
+</header>
+
+<section class="kpis">
+  <div class="kpi"><b>{{ pct }} %</b><span>Profil complété</span>
+    <div class="track thin"><i style="width:{{ pct }}%"></i></div></div>
+  <div class="kpi"><b>{{ total }}</b><span>Candidatures suivies</span></div>
+  <div class="kpi"><b>{{ c['Entretien'] + c['Réponse positive'] }}</b><span>Entretiens et réponses positives</span></div>
+  <div class="kpi {{ 'warn' if relances }}"><b>{{ relances|length }}</b><span>À relancer</span></div>
+</section>
+
+{% if pct < 100 %}
+<p class="panel inline">Ton profil est complet à {{ pct }} %. <a href="{{ url_for('profil_page') }}">Complète-le</a> pour de meilleurs CV et un meilleur matching.</p>
+{% endif %}
+
+{% set steps = [
+  (pct >= 100, "Compléter mon profil", url_for('profil_page'), ""),
+  (true if gmail else false, "Connecter mon Gmail pour envoyer mes candidatures", url_for('gmail_connect') ~ "?next=/dashboard" if gmail_ok else "", "" if gmail_ok else "Ajoute GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET dans .env"),
+  (total > 0, "Envoyer ma première candidature", url_for('offres_page'), "")] %}
+{% if steps|rejectattr(0)|list %}
+<section class="panel">
+  <h2>Pour bien démarrer</h2>
+  <ol class="steps">
+  {% for ok, label, href, hint in steps %}
+    <li class="{{ 'done' if ok }}"><span class="tick">{{ '✓' if ok else loop.index }}</span>
+      {% if href and not ok %}<a href="{{ href }}">{{ label }}</a>{% else %}<span>{{ label }}</span>{% endif %}
+      {% if hint and not ok %}<small class="muted">{{ hint }}</small>{% endif %}</li>
+  {% endfor %}
+  </ol>
+</section>
+{% endif %}
+
+<section class="panel">
+  <h2>Meilleures offres pour toi</h2>
+  {% if not best %}<div class="empty-state"><p>{% if n_ent %}Tu as {{ n_ent }} entreprise(s) dans ta base, mais aucune offre pour l'instant.{% else %}Tu n'as pas encore de données.{% endif %}</p></div>{% endif %}
+  <div class="list">
+  {% for o in best %}
+    <div class="item">
+      <div><b>{{ o.titre }}</b><small>{{ o.entreprise }} · {{ o.ville }} · {{ o.type }}</small></div>
+      <span class="score s{{ 3 if o.score>=70 else (2 if o.score>=40 else 1) }}">{{ o.score }} %</span>
+    </div>
+  {% endfor %}
+  </div>
+  <p class="note"><a href="{{ url_for('offres_page') }}">Voir toutes les offres</a></p>
+</section>
+{% endblock %}

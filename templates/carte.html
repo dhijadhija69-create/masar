@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Carte · Masar{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='leaflet/leaflet.css') }}">
+<header class="page-head">
+  <div><h1>Carte</h1><p class="muted">Où se trouvent les entreprises, et où en est chaque candidature.</p></div>
+  <div class="legend">
+    <label><input type="checkbox" id="t-offres" checked> <i class="dot" style="background:#2d6a4f"></i>Offres</label>
+    <label><input type="checkbox" id="t-ent" checked> <i class="dot" style="background:#74c69d"></i>Entreprises</label>
+    <label><input type="checkbox" id="t-suivi" checked> Mon suivi</label>
+    {% for s, c in [('A postuler','#8a948e'),('Envoyée','#2563eb'),('Entretien','#f59e0b'),('Réponse positive','#16a34a'),('Refusée','#dc2626')] %}
+    <span><i class="dot" style="background:{{ c }}"></i>{{ s }}</span>{% endfor %}
+  </div>
+</header>
+<div id="map" class="map"></div>
+<script src="{{ url_for('static', filename='leaflet/leaflet.js') }}"></script>
+<script>
+const pts = {{ pts|tojson }};
+const COL = {'A postuler':'#8a948e','Envoyée':'#2563eb','Entretien':'#f59e0b','Réponse positive':'#16a34a','Refusée':'#dc2626'};
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const map = L.map('map', {preferCanvas: true}).setView([31.9, -6.5], 6);
+L.tileLayer('https://tile.openstreetmap.de/{z}/{x}/{y}.png', {maxZoom: 19, attribution: '© OpenStreetMap contributors'}).addTo(map);
+const gO = L.layerGroup().addTo(map), gE = L.layerGroup().addTo(map), gS = L.layerGroup().addTo(map), all = [];
+function contact(p) {
+  return (p.tel ? '<br><a href="tel:' + esc(p.tel.replace(/ /g,'')) + '">' + esc(p.tel) + '</a>' : '') +
+         (p.email ? '<br><a href="mailto:' + esc(p.email) + '">' + esc(p.email) + '</a>' : '');
+}
+pts.offres.forEach(p => {
+  const m = L.circleMarker([p.lat, p.lng], {radius: 7, color: '#fff', weight: 2, fillColor: '#2d6a4f', fillOpacity: .95}).addTo(gO);
+  m.bindPopup('<b>' + esc(p.entreprise) + '</b><br>' + esc(p.titre) + '<br>' + esc(p.adresse || p.ville) + contact(p) +
+              '<br><a href="/offres/' + p.id + '">' + tr("Voir l'offre") + '</a>'); all.push([p.lat, p.lng]);
+});
+pts.entreprises.forEach(p => {
+  const m = L.circleMarker([p.lat, p.lng], {radius: 5, color: '#fff', weight: 1, fillColor: '#74c69d', fillOpacity: .9}).addTo(gE);
+  m.bindPopup('<b>' + esc(p.nom) + '</b><br>' + esc(p.secteur) + ' · ' + esc(p.ville) + (p.adresse ? '<br>' + esc(p.adresse) : '') + contact(p) +
+              (p.site ? '<br><a target="_blank" rel="noopener" href="' + esc(/^https?:/.test(p.site) ? p.site : 'https://' + p.site) + '">' + tr('Site web') + '</a>' : ''));
+  all.push([p.lat, p.lng]);
+});
+const focus = new URLSearchParams(location.search).get('focus');
+pts.suivi.forEach(p => {
+  const m = L.circleMarker([p.lat, p.lng], {radius: 11, color: COL[p.statut] || '#444', weight: 3, fillColor: COL[p.statut] || '#444', fillOpacity: .25}).addTo(gS);
+  m.bindPopup('<b>' + esc(p.entreprise) + '</b><br>' + esc(p.poste) + '<br><i>' + esc(tr(p.statut)) + '</i>' + contact(p) +
+              '<br><a href="/candidatures">' + tr('Ouvrir le suivi') + '</a>'); all.push([p.lat, p.lng]);
+  if (focus && String(p.id) === focus) { map.setView([p.lat, p.lng], 13); m.openPopup(); }
+});
+if (!focus && all.length) map.fitBounds(all, {padding: [40, 40], maxZoom: 9});
+document.getElementById('t-offres').onchange = e => e.target.checked ? gO.addTo(map) : map.removeLayer(gO);
+document.getElementById('t-ent').onchange = e => e.target.checked ? gE.addTo(map) : map.removeLayer(gE);
+document.getElementById('t-suivi').onchange = e => e.target.checked ? gS.addTo(map) : map.removeLayer(gS);
+</script>
+{% endblock %}
